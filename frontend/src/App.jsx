@@ -4,28 +4,43 @@ function App() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [contentType, setContentType] = useState("text"); // text veya html
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === "text/html") {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setContent(event.target.result);
+      };
+      reader.readAsText(file);
+    } else {
+      alert("Lütfen geçerli bir HTML dosyası seçin.");
+      e.target.value = null;
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title || !content) {
       alert("Lütfen alanları doldurun.");
       return;
     }
+
     setLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setLoading(false);
     alert("Rapor başarıyla oluşturuldu!");
+    console.log({ title, contentType, content }); // test için
   };
 
   return (
     <div style={styles.background}>
-      {/* Arka Plan Dekorasyonu */}
       <div style={{ ...styles.blob, background: "#674F99", top: "-10%", left: "-5%" }}></div>
       <div style={{ ...styles.blob, background: "#B2A6CC", bottom: "10%", right: "-5%" }}></div>
 
       <div style={styles.glassContainer}>
         <header style={styles.header}>
           <div style={styles.iconCircle}>
-            {/* Minimalist Çizgisel Mor Dosya İkonu */}
             <svg 
               width="32" 
               height="32" 
@@ -60,15 +75,41 @@ function App() {
           </div>
 
           <div style={styles.bubbleInputWrapper}>
-            <label style={styles.label}>AÇIKLAMA</label>
-            <textarea
-              placeholder="Metninizi buraya yazın..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={6}
-              style={styles.textarea}
-            />
+            <label style={styles.label}>AÇIKLAMA TÜRÜ</label>
+            <select
+              value={contentType}
+              onChange={(e) => {
+                setContentType(e.target.value);
+                setContent(""); // önceki içeriği sıfırla
+              }}
+              style={{ ...styles.input, cursor: "pointer" }}
+            >
+              <option value="text">Metin</option>
+              <option value="html">HTML Dosyası</option>
+            </select>
           </div>
+
+          {contentType === "text" ? (
+            <div style={styles.bubbleInputWrapper}>
+              <textarea
+                placeholder="Metninizi buraya yazın..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={6}
+                style={styles.textarea}
+              />
+            </div>
+          ) : (
+            <div style={styles.bubbleInputWrapper}>
+              <input
+                type="file"
+                accept=".html"
+                onChange={handleFileChange}
+                style={styles.input}
+              />
+              {content && <p style={{ marginTop: "8px", fontSize: "12px", color: "#718096" }}>Dosya yüklendi!</p>}
+            </div>
+          )}
         </div>
 
         <button
