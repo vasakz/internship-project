@@ -6,6 +6,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [contentType, setContentType] = useState("text"); // text veya html
 
+  // HTML Dosyası seçildiğinde içeriği okuyan fonksiyon
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file && file.type === "text/html") {
@@ -20,17 +21,47 @@ function App() {
     }
   };
 
+  // Backend ile PDF üreten fonksiyon
   const handleSubmit = async () => {
+    // Validasyon
     if (!title || !content) {
-      alert("Lütfen alanları doldurun.");
+      alert("Lütfen rapor adı ve içeriği alanlarını doldurun.");
       return;
     }
 
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setLoading(false);
-    alert("Rapor başarıyla oluşturuldu!");
-    console.log({ title, contentType, content }); // test için
+    try {
+      // Backend servisine POST isteği gönderiyoruz
+      const response = await fetch("http://localhost:5000/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content, contentType }),
+      });
+
+      if (response.ok) {
+        // Gelen PDF verisini (blob) alıyoruz
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Gizli bir link üzerinden PDF indirme işlemini başlatıyoruz
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title.replace(/\s+/g, '_')}_Raporu.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        
+        alert("PDF başarıyla oluşturuldu ve indiriliyor!");
+      } else {
+        const errorData = await response.text();
+        alert(`Hata: ${errorData || "PDF oluşturulamadı."}`);
+      }
+    } catch (error) {
+      console.error("Bağlantı Hatası:", error);
+      alert("Backend sunucusuna ulaşılamadı. Sunucunun (node index.js) çalıştığından emin olun.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,21 +72,11 @@ function App() {
       <div style={styles.glassContainer}>
         <header style={styles.header}>
           <div style={styles.iconCircle}>
-            <svg 
-              width="32" 
-              height="32" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="#674F99" 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#674F99" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
-              <circle cx="9" cy="9" r="0.5" fill="#674F99"></circle>
             </svg>
           </div>
           <h1 style={styles.title}>Yeni Rapor</h1>
@@ -80,12 +101,12 @@ function App() {
               value={contentType}
               onChange={(e) => {
                 setContentType(e.target.value);
-                setContent(""); // önceki içeriği sıfırla
+                setContent(""); 
               }}
               style={{ ...styles.input, cursor: "pointer" }}
             >
-              <option value="text">Metin</option>
-              <option value="html">HTML Dosyası</option>
+              <option value="text">Düz Metin</option>
+              <option value="html">HTML Dosyası Yükle</option>
             </select>
           </div>
 
@@ -101,13 +122,14 @@ function App() {
             </div>
           ) : (
             <div style={styles.bubbleInputWrapper}>
+              <label style={styles.label}>HTML DOSYASI SEÇİN</label>
               <input
                 type="file"
                 accept=".html"
                 onChange={handleFileChange}
                 style={styles.input}
               />
-              {content && <p style={{ marginTop: "8px", fontSize: "12px", color: "#718096" }}>Dosya yüklendi!</p>}
+              {content && <p style={{ marginTop: "8px", fontSize: "12px", color: "#674F99", fontWeight: "600" }}>✓ Dosya içeriği yüklendi</p>}
             </div>
           )}
         </div>
@@ -115,8 +137,6 @@ function App() {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          onMouseEnter={(e) => !loading && (e.target.style.opacity = "0.9")}
-          onMouseLeave={(e) => !loading && (e.target.style.opacity = "1")}
           style={{
             ...styles.button,
             backgroundColor: loading ? "#94a3b8" : "#674F99",
@@ -130,6 +150,7 @@ function App() {
   );
 }
 
+// Stil objesi (Senin tasarımını aynen korudum)
 const styles = {
   background: {
     height: "100vh",
@@ -156,7 +177,6 @@ const styles = {
     maxWidth: "480px",
     background: "rgba(255, 255, 255, 0.75)",
     backdropFilter: "blur(30px)",
-    WebkitBackdropFilter: "blur(30px)",
     borderRadius: "40px",
     padding: "50px 40px",
     border: "1px solid rgba(255, 255, 255, 0.5)",
